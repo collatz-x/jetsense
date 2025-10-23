@@ -19,7 +19,7 @@ from pyspark.sql.types import StringType, IntegerType, FloatType, DateType, Bool
 
 # import utils.gold_processing
 import utils.bronze_processing as bp
-# import utils.silver_processing
+import utils.silver_processing as sp
 
 # Initialize SparkSession
 spark = pyspark.sql.SparkSession.builder \
@@ -31,19 +31,22 @@ spark = pyspark.sql.SparkSession.builder \
 spark.sparkContext.setLogLevel("ERROR")
 
 # set up config
-train = [
+train_paths = [
     'raw_data/train_FD001.txt',
     'raw_data/train_FD002.txt',
     'raw_data/train_FD003.txt',
     'raw_data/train_FD004.txt'
 ]
 
-test = [
-    'raw_data/test_FD001.txt',
-    'raw_data/test_FD002.txt',
-    'raw_data/test_FD003.txt',
-    'raw_data/test_FD004.txt'
+for train in train_paths: 
+    bp.process_bronze_table(train, "datamart/bronze/", spark)
+
+train_paths = [
+    'bronze_train_FD001.csv',
+    'bronze_train_FD002.csv',
+    'bronze_train_FD003.csv',
+    'bronze_train_FD004.csv'
 ]
 
-bp.process_bronze_table(train, "datamart/bronze/", spark)
-bp.process_bronze_table(test, "datamart/bronze/", spark)
+sp.process_silver_table(train_paths, "datamart/bronze/", "datamart/silver", spark)
+sp.process_silver_rolling_mean("datamart/silver/silver_feature.parquet", "datamart/silver", spark)
