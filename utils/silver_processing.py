@@ -78,50 +78,50 @@ def process_silver_table(filepaths, bronze_directory, silver_directory,spark):
     
     return df
 
-def process_silver_rolling_mean(filename, silver_directory, spark, rolling_window=3):
-    df = spark.read.parquet(filename)
+# def process_silver_rolling_mean(filename, silver_directory, spark, rolling_window=3):
+#     df = spark.read.parquet(filename)
 
-    # Identify numeric columns only
-    numeric_cols = [c for c, t in df.dtypes if t in ("double", "float", "int") and c not in ("unit", "cycle")]
+#     # Identify numeric columns only
+#     numeric_cols = [c for c, t in df.dtypes if t in ("double", "float", "int") and c not in ("unit", "cycle")]
 
-    # Define rolling and lag windows
-    roll_window = (
-        Window.partitionBy("unit")
-              .orderBy("cycle")
-              .rowsBetween(-(rolling_window - 1), 0)
-    )
+#     # Define rolling and lag windows
+#     roll_window = (
+#         Window.partitionBy("unit")
+#               .orderBy("cycle")
+#               .rowsBetween(-(rolling_window - 1), 0)
+#     )
 
-    lag_window = (
-        Window.partitionBy("unit")
-              .orderBy("cycle")
-    )
+#     lag_window = (
+#         Window.partitionBy("unit")
+#               .orderBy("cycle")
+#     )
 
-    for column in numeric_cols:
-        roll_mean = f"{column}_rolling_mean"
-        roll_std  = f"{column}_rolling_std"
-        delta_col = f"{column}_delta"
+#     for column in numeric_cols:
+#         roll_mean = f"{column}_rolling_mean"
+#         roll_std  = f"{column}_rolling_std"
+#         delta_col = f"{column}_delta"
 
-        df = (
-            df.withColumn(roll_mean, F.avg(F.col(column)).over(roll_window))
-              .withColumn(roll_std,  F.stddev(F.col(column)).over(roll_window))
-              .withColumn(delta_col, F.col(column) - F.lag(F.col(column), 1).over(lag_window))
-        )
+#         df = (
+#             df.withColumn(roll_mean, F.avg(F.col(column)).over(roll_window))
+#               .withColumn(roll_std,  F.stddev(F.col(column)).over(roll_window))
+#               .withColumn(delta_col, F.col(column) - F.lag(F.col(column), 1).over(lag_window))
+#         )
 
-        # Fill nulls
-        df = (
-            df.withColumn(
-                roll_mean,
-                F.when(F.col(roll_mean).isNull(), F.col(column)).otherwise(F.col(roll_mean))
-            )
-            .withColumn(
-                roll_std,
-                F.when(F.col(roll_std).isNull(), F.lit(0.0)).otherwise(F.col(roll_std))
-            )
-            .withColumn(
-                delta_col,
-                F.when(F.col(delta_col).isNull(), F.lit(0.0)).otherwise(F.col(delta_col))
-            )
-        )
+#         # Fill nulls
+#         df = (
+#             df.withColumn(
+#                 roll_mean,
+#                 F.when(F.col(roll_mean).isNull(), F.col(column)).otherwise(F.col(roll_mean))
+#             )
+#             .withColumn(
+#                 roll_std,
+#                 F.when(F.col(roll_std).isNull(), F.lit(0.0)).otherwise(F.col(roll_std))
+#             )
+#             .withColumn(
+#                 delta_col,
+#                 F.when(F.col(delta_col).isNull(), F.lit(0.0)).otherwise(F.col(delta_col))
+#             )
+#         )
 
     # Save enriched Silver dataset
     filename = f"{silver_directory}/silver_feature_rolling.parquet"
