@@ -148,24 +148,37 @@ def process_gold_table(silver_input, gold_directory, spark):
     # Label Store: Target variable with identifiers (ground truth for training)
     label_store = pdf_scaled[["unit", "cycle", "RUL"]]
 
-    # ==================== STEP 8: Save Gold Layer Outputs ====================
-    # Save as CSV for broad compatibility (no Arrow/Parquet dependencies needed)
+    # ==================== STEP 8: Save Gold Layer Outputs (as Parquet) ====================
+    # Save as Parquet for efficient storage and Spark compatibility
     os.makedirs(gold_directory, exist_ok=True)
-    
-    # Define output file paths
-    gold_full_path = os.path.join(gold_directory, "gold_full.csv")
-    feature_path = os.path.join(gold_directory, "feature_store.csv")
-    label_path = os.path.join(gold_directory, "label_store.csv")
-    meta_path = os.path.join(gold_directory, "feature_metadata.csv")
 
-    # Save complete dataset with all features and labels
-    pdf_scaled.to_csv(gold_full_path, index=False)
-    
-    # Save feature store (for model input)
-    feature_store.to_csv(feature_path, index=False)
-    
-    # Save label store (for model training/evaluation)
-    label_store.to_csv(label_path, index=False)
+    gold_full_path = os.path.join(gold_directory, "gold_full.parquet")
+    feature_path = os.path.join(gold_directory, "feature_store.parquet")
+    label_path = os.path.join(gold_directory, "label_store.parquet")
+    meta_path = os.path.join(gold_directory, "feature_metadata.csv")  # keep metadata CSV for readability
+
+    # Convert back to Spark DataFrame for distributed write
+    gold_df = spark.createDataFrame(pdf_scaled)
+    feature_df = spark.createDataFrame(feature_store)
+    label_df = spark.createDataFrame(label_store)
+
+    # Overwrite mode to replace existing files
+    gold_df.write.mode("overwrite").parquet(gold_full_path)
+    feature_df.write.mode("overwrite").parquet(feature_path)
+    label_df.write.mode("overwrite").parquet(label_path)
+
+    # Save normalization metadata separately (still as CSV)
+    pd.DataFrame({
+        "feature": cols_to_scale,
+        "mean": scaler.mean_,
+        "std": scaler.scale_
+    }).to_csv(meta_path, index=False)
+
+    print(f"💾 Saved Gold full table      → {gold_full_path}")
+    print(f"💾 Saved Feature Store        → {feature_path}")
+    print(f"💾 Saved Label Store          → {label_path}")
+    print(f"💾 Saved normalization config → {meta_path}")
+
 
     # ==================== STEP 9: Save Normalization Metadata ====================
     # Store mean and std for each feature so we can apply same transformation

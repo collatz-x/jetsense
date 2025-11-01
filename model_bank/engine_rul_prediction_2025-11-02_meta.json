@@ -1,0 +1,77 @@
+{
+    "model_name": "RidgeRegression",
+    "model_version": "engine_rul_prediction_2025-11-02",
+    "train_date": "2025-11-02 00:11:16",
+    "metrics": {
+        "Ridge": {
+            "Val": {
+                "MAE": 13.317965639378896,
+                "RMSE": 17.507015164760414,
+                "R2": 0.892428215641878
+            },
+            "Test": {
+                "MAE": 14.503614309700023,
+                "RMSE": 19.230831065831303,
+                "R2": 0.887072523995055
+            }
+        },
+        "RandomForest": {
+            "Val": {
+                "MAE": 12.8750263671875,
+                "RMSE": 18.16408095765191,
+                "R2": 0.8842020117467504
+            },
+            "Test": {
+                "MAE": 15.52713543622481,
+                "RMSE": 20.881118563750388,
+                "R2": 0.8668592391197794
+            }
+        },
+        "Selected": {
+            "Model": "RidgeRegression",
+            "Val_R2": 0.892428215641878,
+            "Test_R2": 0.887072523995055
+        }
+    },
+    "features_used": [
+        "op_setting_1",
+        "op_setting_2",
+        "op_setting_3",
+        "T24",
+        "T30",
+        "T50",
+        "P15",
+        "P30",
+        "Nf",
+        "Nc",
+        "phi",
+        "BPR",
+        "htBleed",
+        "W31",
+        "W32",
+        "T24_roll5_mean",
+        "T24_delta1",
+        "T30_roll5_mean",
+        "T30_delta1",
+        "T50_roll5_mean",
+        "T50_delta1",
+        "P15_roll5_mean",
+        "P15_delta1",
+        "P30_roll5_mean",
+        "P30_delta1",
+        "Nf_roll5_mean",
+        "Nf_delta1",
+        "Nc_roll5_mean",
+        "Nc_delta1",
+        "T_ratio_24_30",
+        "T_ratio_30_50",
+        "P_ratio_15_30",
+        "N_ratio_f_c",
+        "cycle_norm",
+        "health_index"
+    ],
+    "train_size": 74233,
+    "val_size": 15360,
+    "test_size": 15978,
+    "random_seed": 42
+}
