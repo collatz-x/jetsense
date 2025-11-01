@@ -1,22 +1,10 @@
 # ==============================================================
 # MAIN ETL PIPELINE — Bronze → Silver → Gold
 # ==============================================================
+
 import os
-import glob
-import pandas as pd
-import numpy as np
-import random
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
-import pprint
 import pyspark
-import pyspark.sql.functions as F
-from pyspark.sql.window import Window
-from pyspark.sql.functions import col
-from pyspark.sql.types import (
-    StringType, IntegerType, FloatType, DateType, BooleanType, DoubleType
-)
+from pyspark.sql import functions as F
 
 # Import processing scripts
 import utils.bronze_processing as bp
@@ -38,9 +26,7 @@ spark.sparkContext.setLogLevel("ERROR")
 # --------------------------------------------------------------
 # BRONZE LAYER
 # --------------------------------------------------------------
-train_paths = [
-    'raw_data/train_FD001_augmented.txt'
-]
+train_paths = ['raw_data/train_FD001_augmented.txt']
 
 print("\n🟤 Processing Bronze Layer...")
 for train in train_paths:
@@ -50,7 +36,6 @@ for train in train_paths:
 # --------------------------------------------------------------
 # SILVER LAYER
 # --------------------------------------------------------------
-# ✅ FIXED: Match Bronze output folder (Spark writes folder, not .csv)
 train_paths = ['bronze_train_FD001_augmented']
 
 print("\n⚪ Processing Silver Layer...")
@@ -89,18 +74,18 @@ print(f"📊 Silver integrity check → {engine_count} unique engines, {row_coun
 
 
 # --------------------------------------------------------------
-# GOLD LAYER (Feature + Label Store)
+# GOLD LAYER (Feature Store + Label Store)
 # --------------------------------------------------------------
 print("\n🟡 Processing Gold Layer...")
 silver_filepath = cleaned_path
 gold_directory = "datamart/gold"
 
+# ✅ Updated: gold_processing now returns 3 objects
 gold_df, feature_store, label_store = gp.process_gold_table(silver_filepath, gold_directory, spark)
 
-# Verify engine counts again
-gold_engine_count = gold_df.select("unit").distinct().count()
-gold_rows = gold_df.count()
-print(f"📊 Gold integrity check → {gold_engine_count} unique engines, {gold_rows:,} rows")
+# ✅ gold_df is a pandas DataFrame (normalized)
+print(f"📊 Gold integrity check → {gold_df['unit'].nunique()} unique engines, {len(gold_df):,} rows")
+
 
 # --------------------------------------------------------------
 # COMPLETION SUMMARY
@@ -109,5 +94,6 @@ print("\n✅ FULL ETL PIPELINE COMPLETE!")
 print(f"📁 Gold Table:      {gold_directory}/gold_full.parquet")
 print(f"📁 Feature Store:   {gold_directory}/feature_store.parquet")
 print(f"📁 Label Store:     {gold_directory}/label_store.parquet")
+print(f"📁 Normalization:   {gold_directory}/feature_metadata.csv")
 print("--------------------------------------------------------------")
 print("🏁 Pipeline finished successfully.")
