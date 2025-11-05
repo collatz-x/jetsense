@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
+from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType
 
 def process_bronze_table(filepath, bronze_directory, spark):
     """
@@ -48,7 +49,28 @@ def process_bronze_table(filepath, bronze_directory, spark):
 
     # ==================== STEP 2: Convert to Spark ====================
     # Convert Pandas DataFrame to Spark DataFrame for scalable processing
-    spark_df = spark.createDataFrame(df)
+    # FIX: Enable Arrow for faster pandas <-> Spark conversion (avoids serialization issues)
+    try:
+        spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+        spark.conf.set("spark.sql.execution.arrow.pyspark.fallback.enabled", "true")
+    except Exception:
+        pass  # If Arrow config fails, continue without it
+    
+    # FIX: Define explicit schema to avoid type inference and serialization issues
+    schema = StructType([
+        StructField("unit", IntegerType(), True),
+        StructField("cycle", IntegerType(), True),
+    ] + [StructField(col_name, DoubleType(), True) for col_name in header_names[2:]])
+    
+    # FIX: Ensure pandas dtypes are compatible before conversion
+    for col_name in df.columns:
+        if col_name in ['unit', 'cycle']:
+            df[col_name] = df[col_name].astype('int32')
+        else:
+            df[col_name] = df[col_name].astype('float64')
+    
+    # Create Spark DataFrame with explicit schema
+    spark_df = spark.createDataFrame(df, schema=schema)
     
     # Verify data integrity after conversion
     spark_engine_count = spark_df.select('unit').distinct().count()

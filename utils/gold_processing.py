@@ -157,6 +157,36 @@ def process_gold_table(silver_input, gold_directory, spark):
     label_path = os.path.join(gold_directory, "label_store.parquet")
     meta_path = os.path.join(gold_directory, "feature_metadata.csv")  # keep metadata CSV for readability
 
+    # FIX: Enable Arrow for faster pandas <-> Spark conversion (avoids serialization issues)
+    try:
+        spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+        spark.conf.set("spark.sql.execution.arrow.pyspark.fallback.enabled", "true")
+    except Exception:
+        pass  # If Arrow config fails, continue without it
+    
+    # FIX: Ensure all pandas columns have proper dtypes before conversion
+    # Convert any object dtypes to appropriate numeric types
+    for col_name in pdf_scaled.columns:
+        if col_name in ['unit', 'cycle']:
+            pdf_scaled[col_name] = pdf_scaled[col_name].astype('int32')
+        elif pdf_scaled[col_name].dtype == 'object':
+            pdf_scaled[col_name] = pdf_scaled[col_name].astype('float64')
+        elif pdf_scaled[col_name].dtype in ['int64', 'float64']:
+            # Keep as is, these are fine
+            pass
+    
+    for col_name in feature_store.columns:
+        if col_name in ['unit', 'cycle']:
+            feature_store[col_name] = feature_store[col_name].astype('int32')
+        elif feature_store[col_name].dtype == 'object':
+            feature_store[col_name] = feature_store[col_name].astype('float64')
+    
+    for col_name in label_store.columns:
+        if col_name in ['unit', 'cycle']:
+            label_store[col_name] = label_store[col_name].astype('int32')
+        elif label_store[col_name].dtype == 'object':
+            label_store[col_name] = label_store[col_name].astype('float64')
+    
     # Convert back to Spark DataFrame for distributed write
     gold_df = spark.createDataFrame(pdf_scaled)
     feature_df = spark.createDataFrame(feature_store)

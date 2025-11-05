@@ -5,7 +5,7 @@ import pyspark
 import pyspark.sql.functions as F
 from pyspark.sql.functions import col
 from pyspark.sql.types import (
-    StringType, IntegerType, FloatType, DateType, BooleanType, DoubleType
+    StringType, IntegerType, FloatType, DateType, BooleanType, DoubleType, StructType, StructField
 )
 
 # ==============================================================
@@ -76,7 +76,29 @@ def process_silver_table(filepaths, bronze_directory, silver_directory, spark):
 
     # ==================== STEP 4: Convert to Spark DataFrame ====================
     # Convert to Spark for scalable processing and Parquet writing
-    df = spark.createDataFrame(combined)
+    # FIX: Enable Arrow for faster pandas <-> Spark conversion (avoids serialization issues)
+    try:
+        spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+        spark.conf.set("spark.sql.execution.arrow.pyspark.fallback.enabled", "true")
+    except Exception:
+        pass  # If Arrow config fails, continue without it
+    
+    # FIX: Ensure pandas dtypes are compatible before conversion
+    for col_name in combined.columns:
+        if col_name in ['unit', 'cycle']:
+            combined[col_name] = combined[col_name].astype('int32')
+        else:
+            combined[col_name] = combined[col_name].astype('float64')
+    
+    # FIX: Define explicit schema to avoid type inference and serialization issues
+    column_names = combined.columns.tolist()
+    schema = StructType([
+        StructField("unit", IntegerType(), True),
+        StructField("cycle", IntegerType(), True),
+    ] + [StructField(col_name, DoubleType(), True) for col_name in column_names if col_name not in ['unit', 'cycle']])
+    
+    # Create Spark DataFrame with explicit schema
+    df = spark.createDataFrame(combined, schema=schema)
 
     # ==================== STEP 5: Enforce Data Type Schema ====================
     # Define expected data types for all columns to ensure consistency
