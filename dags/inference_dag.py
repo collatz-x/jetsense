@@ -7,8 +7,6 @@ import os
 # Add scripts to path
 sys.path.insert(0, "/opt/airflow")
 
-from scripts.inference.inference import main as inference_main
-
 # ============================================================================
 # Configuration
 # ============================================================================
@@ -22,6 +20,9 @@ DEFAULT_UNITS = "all"  # Or specify units like "1,5,10"
 
 def run_inference(**context):
     """Run inference using the inference script."""
+    # Import inside the task to avoid serialization issues
+    from scripts.inference.inference import main as inference_main
+    
     model_name = context["dag_run"].conf.get("modelname", DEFAULT_MODEL_NAME)
     units = context["dag_run"].conf.get("units", DEFAULT_UNITS)
 

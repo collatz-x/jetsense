@@ -7,10 +7,10 @@ import pandas as pd
 import json
 import glob
 import os
+import sys
 
-# Adjust these imports based on your actual project structure
-from scripts.monitoring.input_drift import input_drift_report
-from scripts.monitoring.prediction_drift import pred_distribution_drift, monotonicity_violation_rate
+# Add project root to path
+sys.path.insert(0, "/opt/airflow")
 
 # ============================================================================
 # Configuration - Update these paths for your medallion architecture
@@ -125,6 +125,9 @@ def prepare_latest_inference_data(**context):
 
 def check_input_drift(**context):
     """Monitor input feature drift between reference and current data."""
+    # Import inside the task to avoid serialization issues
+    from scripts.monitoring.input_drift import input_drift_report
+    
     print("Loading data from gold layer...")
     
     # Load parquet files
@@ -167,6 +170,9 @@ def check_input_drift(**context):
 
 def check_prediction_drift(**context):
     """Monitor prediction distribution drift and monotonicity violations."""
+    # Import inside the task to avoid serialization issues
+    from scripts.monitoring.prediction_drift import pred_distribution_drift, monotonicity_violation_rate
+    
     print("Loading prediction data from gold layer...")
     
     # Load predictions
