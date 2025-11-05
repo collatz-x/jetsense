@@ -11,7 +11,7 @@ from pyspark.sql.functions import col
 from datetime import datetime
 
 
-# to call this script: python inference.py --modelname "engine_rul_prediction_2025-11-02.pkl" --units "1, 5, 10"
+# to call this script: python scripts/inference/inference.py --modelname "engine_rul_prediction_2025-11-02.pkl" --units "1, 5, 10"
 
 def main(modelname, units):
     print('\n\n---starting job---\n\n')

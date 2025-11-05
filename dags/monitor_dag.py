@@ -5,6 +5,8 @@ from airflow.operators.empty import EmptyOperator
 from datetime import datetime, timedelta
 import pandas as pd
 import json
+import glob
+import os
 
 # Adjust these imports based on your actual project structure
 from scripts.monitoring.input_drift import input_drift_report
@@ -13,16 +15,16 @@ from scripts.monitoring.prediction_drift import pred_distribution_drift, monoton
 # ============================================================================
 # Configuration - Update these paths for your medallion architecture
 # ============================================================================
-GOLD_REFERENCE_DATA = "datamart/gold/reference_data.parquet"  # Your training data
-GOLD_CURRENT_DATA = "/pdatamart/gold/latest_inference_data.parquet"  # Latest production data
-GOLD_PREDICTIONS = "/datamart/gold/latest_predictions.parquet"  # Predictions with actual RUL values
-REFERENCE_PREDICTIONS = "/datamart/gold/reference_predictions.parquet"  # Training predictions
+GOLD_REFERENCE_DATA = "datamart/gold/reference_data.parquet"  # Baseline training data (frozen snapshot)
+GOLD_CURRENT_DATA = "datamart/gold/feature_store.parquet"  # Current production data (live, updated by ETL)
+GOLD_PREDICTIONS = "datamart/gold/latest_predictions.parquet"  # Latest predictions from inference
+REFERENCE_PREDICTIONS = "datamart/gold/reference_predictions.parquet"  # Baseline predictions
 
 # Feature columns to monitor (update with your actual features)
 FEATURE_COLS = ['op_setting_1', 'op_setting_2', 'op_setting_3', 'T24', 'T30', 'T50', 'P15', 'P30', 'Nf', 'Nc', 'phi', 'BPR', 'htBleed', 'W31', 'W32', 'T24_roll5_mean', 'T24_delta1', 'T30_roll5_mean', 'T30_delta1', 'T50_roll5_mean', 'T50_delta1', 'P15_roll5_mean', 'P15_delta1', 'P30_roll5_mean', 'P30_delta1', 'Nf_roll5_mean', 'Nf_delta1', 'Nc_roll5_mean', 'Nc_delta1', 'T_ratio_24_30', 'T_ratio_30_50', 'P_ratio_15_30', 'N_ratio_f_c', 'cycle_norm', 'health_index']  
 UNIT_COL = "unit"  # Column identifying different units/assets
 CYCLE_COL = "cycle"  # Time cycle column
-PREDICTION_COL = "predicted_rul"  # Your RUL prediction column
+PREDICTION_COL = "RUL_predicted"  # Your RUL prediction column (matches inference.py output)
 
 # Thresholds
 PSI_THRESHOLD = 0.25  # Major drift if PSI > 0.25
@@ -34,6 +36,92 @@ MONOTONICITY_THRESHOLD = 0.1  # Alert if >10% violations
 # ============================================================================
 # Task Functions
 # ============================================================================
+
+def initialize_reference_data(**context):
+    """
+    Initialize reference baseline files if they don't exist.
+    This runs once on first execution to establish the baseline for drift detection.
+    """
+    # Check if reference data already exists
+    ref_data_exists = os.path.exists(GOLD_REFERENCE_DATA)
+    ref_pred_exists = os.path.exists(REFERENCE_PREDICTIONS)
+    
+    if ref_data_exists and ref_pred_exists:
+        print("✅ Reference data already exists, skipping initialization")
+        return "skip_initialization"
+    
+    print("🔧 Initializing reference baseline data for first-time setup...")
+    
+    # Create reference feature data from existing feature store
+    if not ref_data_exists:
+        print(f"Creating {GOLD_REFERENCE_DATA}...")
+        feature_df = pd.read_parquet("datamart/gold/feature_store.parquet")
+        feature_df.to_parquet(GOLD_REFERENCE_DATA)
+        print(f"✅ Created reference data with {len(feature_df)} rows")
+    
+    # Create reference predictions from existing OOT predictions or feature store
+    if not ref_pred_exists:
+        print(f"Creating {REFERENCE_PREDICTIONS}...")
+        
+        # Option 1: Try to use existing OOT predictions if available
+        oot_pred_path = "datamart/gold/oot_predictions_ridgeregression.parquet"
+        if os.path.exists(oot_pred_path):
+            pred_df = pd.read_parquet(oot_pred_path)
+            
+            # Check if it has the right column name
+            if 'RUL_predicted' not in pred_df.columns:
+                # Try to find and rename the prediction column
+                pred_cols = [c for c in pred_df.columns if 'rul' in c.lower() or 'pred' in c.lower()]
+                if pred_cols:
+                    print(f"Renaming column {pred_cols[0]} to RUL_predicted")
+                    pred_df = pred_df.rename(columns={pred_cols[0]: 'RUL_predicted'})
+            
+            pred_df.to_parquet(REFERENCE_PREDICTIONS)
+            print(f"✅ Created reference predictions from OOT data with {len(pred_df)} rows")
+        else:
+            # Option 2: Run inference on a sample to generate reference predictions
+            print("⚠️  No OOT predictions found. Please run inference once to generate reference predictions.")
+            raise FileNotFoundError(
+                f"Cannot create {REFERENCE_PREDICTIONS}. "
+                "Please run inference.py once to generate baseline predictions."
+            )
+    
+    print("✅ Reference data initialization complete!")
+    return "initialization_complete"
+
+
+def prepare_latest_inference_data(**context):
+    """Find the latest inference output and prepare it for monitoring."""
+    
+    # Find all inference prediction files
+    prediction_pattern = "datamart/gold/model_predictions/*/*predictions_*.parquet"
+    prediction_files = glob.glob(prediction_pattern)
+    
+    if not prediction_files:
+        raise FileNotFoundError(f"No inference predictions found matching {prediction_pattern}")
+    
+    # Get the latest file by modification time
+    latest_pred_file = max(prediction_files, key=os.path.getmtime)
+    print(f"Found latest prediction file: {latest_pred_file}")
+    
+    # Read and copy to monitoring location
+    pred_df = pd.read_parquet(latest_pred_file)
+    
+    # Validate required columns exist
+    required_cols = ['unit', 'cycle', 'RUL_predicted']
+    missing = set(required_cols) - set(pred_df.columns)
+    if missing:
+        raise ValueError(f"Prediction file missing columns: {missing}")
+    
+    if len(pred_df) == 0:
+        raise ValueError(f"Latest prediction file {latest_pred_file} is empty")
+    
+    pred_df.to_parquet(GOLD_PREDICTIONS)
+    print(f"Prepared {len(pred_df)} predictions for monitoring at {GOLD_PREDICTIONS}")
+    
+    context['ti'].xcom_push(key='latest_file_used', value=latest_pred_file)
+    return latest_pred_file
+
 
 def check_input_drift(**context):
     """Monitor input feature drift between reference and current data."""
@@ -236,14 +324,28 @@ with DAG(
     tags=['monitoring', 'ml', 'drift-detection'],
 ) as dag:
     
-    # Task 1: Check input drift
+    # Task 0: Initialize reference data (runs once, self-checks if already exists)
+    initialize_task = PythonOperator(
+        task_id='initialize_reference_data',
+        python_callable=initialize_reference_data,
+        provide_context=True,
+    )
+    
+    # Task 1: Prepare latest inference data for monitoring
+    prepare_data_task = PythonOperator(
+        task_id='prepare_latest_data',
+        python_callable=prepare_latest_inference_data,
+        provide_context=True,
+    )
+    
+    # Task 2: Check input drift
     input_drift_task = PythonOperator(
         task_id='check_input_drift',
         python_callable=check_input_drift,
         provide_context=True,
     )
     
-    # Task 2: Check prediction drift
+    # Task 3: Check prediction drift
     prediction_drift_task = PythonOperator(
         task_id='check_prediction_drift',
         python_callable=check_prediction_drift,
@@ -278,6 +380,7 @@ with DAG(
     )
     
     # Set task dependencies
+    initialize_task >> prepare_data_task >> [input_drift_task, prediction_drift_task]
     [input_drift_task, prediction_drift_task] >> decide_alert_task
     decide_alert_task >> [send_alert_task, no_alert_task]
     decide_alert_task >> format_alert_task >> send_alert_task
