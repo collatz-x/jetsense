@@ -40,10 +40,10 @@ CYCLE_COL = "cycle"
 PREDICTION_COL = "RUL_predicted"
 
 # Thresholds
-PSI_THRESHOLD = os.getenv('PSI_THRESHOLD', '0.25')
-KS_PVALUE_THRESHOLD = os.getenv('KS_PVALUE_THRESHOLD', '0.05')
-N_DRIFTED_THRESHOLD = os.getenv('N_DRIFTED_THRESHOLD', '3')
-MONOTONICITY_THRESHOLD = os.getenv('MONOTONICITY_THRESHOLD', '0.1')
+PSI_THRESHOLD = float(os.getenv('PSI_THRESHOLD', '0.25'))
+KS_PVALUE_THRESHOLD = float(os.getenv('KS_PVALUE_THRESHOLD', '0.05'))
+N_DRIFTED_THRESHOLD = float(os.getenv('N_DRIFTED_THRESHOLD', '3'))
+MONOTONICITY_THRESHOLD = float(os.getenv('MONOTONICITY_THRESHOLD', '0.1'))
 
 
 # ============================================================================
