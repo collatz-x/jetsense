@@ -16,6 +16,8 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile.airflow
+    env_file:
+      - .env
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__CORE__FERNET_KEY=PAqBeGJLJTYFzVkOGHWIYXdLO7XdXz5yTdxAGJe9ezM=
@@ -40,6 +42,8 @@ services:
       dockerfile: Dockerfile.airflow
     depends_on:
       - airflow-init
+    env_file:
+      - .env
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__CORE__FERNET_KEY=PAqBeGJLJTYFzVkOGHWIYXdLO7XdXz5yTdxAGJe9ezM=
@@ -64,6 +68,8 @@ services:
       dockerfile: Dockerfile.airflow
     depends_on:
       - airflow-init
+    env_file:
+      - .env
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__CORE__FERNET_KEY=PAqBeGJLJTYFzVkOGHWIYXdLO7XdXz5yTdxAGJe9ezM=
