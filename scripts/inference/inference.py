@@ -102,7 +102,7 @@ def main(modelname, units):
     timestamp_str = datetime.now().strftime("%Y_%m_%d_%H%M%S")
     partition_name = config["model_name"][:-4] + "_predictions_" + timestamp_str + '.parquet'
     filepath = gold_directory + partition_name
-    spark.createDataFrame(y_inference_pdf).write.mode("overwrite").parquet(filepath)
+    y_inference_pdf.to_parquet(filepath, index=False)
     print('saved to:', filepath)
 
     
