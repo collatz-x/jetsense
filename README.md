@@ -40,16 +40,7 @@ docker-compose up -build
 
 ### 2. Access Airflow UI
 - Open browser: http://localhost:8080
-- Default credentials: `admin` / `airflow`
-
-### 3. Trigger Your First Run
-```bash
-# Run ETL pipeline
-docker-compose exec airflow-scheduler airflow dags trigger etl_bronze_silver_gold
-
-# Check the UI to see progress
-# DAGs → etl_bronze_silver_gold → Graph View
-```
+- Default credentials: `admin` / `admin`
 
 ---
 
