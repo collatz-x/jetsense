@@ -52,7 +52,7 @@ def main(modelname, units):
 
 
         # --- load feature store ---
-        feature_location = "datamart/gold/feature_store.parquet"
+        feature_location = "datamart/gold_inference/feature_store.parquet"
         
         # Load Parquet into DataFrame - connect to feature store
         features_store_sdf = spark.read.parquet(feature_location)
@@ -92,7 +92,7 @@ def main(modelname, units):
         
 
         # --- save model inference to datamart gold table ---
-        gold_directory = f"datamart/gold/model_predictions/{config['model_name'][:-4]}/"
+        gold_directory = f"datamart/gold_inference/model_predictions/{config['model_name'][:-4]}/"
         print(gold_directory)
         
         if not os.path.exists(gold_directory):

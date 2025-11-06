@@ -15,7 +15,7 @@ sys.path.insert(0, "/opt/airflow")
 def bronze_task_wrapper(**context):
     """Bronze Layer: Raw data ingestion from text files to structured CSVs."""
     # Import inside the task to avoid serialization issues
-    from main import create_spark_session, process_bronze_layer
+    from scripts.main.main import create_spark_session, process_bronze_layer
     
     print("\n🟤 Starting Bronze Layer Processing...")
     os.chdir("/opt/airflow")
@@ -35,7 +35,7 @@ def bronze_task_wrapper(**context):
 def silver_task_wrapper(**context):
     """Silver Layer: Data consolidation and cleaning."""
     # Import inside the task to avoid serialization issues
-    from main import create_spark_session, process_silver_layer
+    from scripts.main.main import create_spark_session, process_silver_layer
     
     print("\n⚪ Starting Silver Layer Processing...")
     os.chdir("/opt/airflow")
@@ -56,7 +56,7 @@ def silver_task_wrapper(**context):
 def clean_silver_task_wrapper(**context):
     """Silver Layer: Feature selection and cleanup."""
     # Import inside the task to avoid serialization issues
-    from main import create_spark_session, clean_silver_features
+    from scripts.main.main import create_spark_session, clean_silver_features
     
     print("\n⚪ Starting Silver Feature Cleaning...")
     os.chdir("/opt/airflow")
@@ -76,7 +76,7 @@ def clean_silver_task_wrapper(**context):
 def gold_task_wrapper(**context):
     """Gold Layer: Feature engineering and ML preparation."""
     # Import inside the task to avoid serialization issues
-    from main import create_spark_session, process_gold_layer
+    from scripts.main.main import create_spark_session, process_gold_layer
     
     print("\n🟡 Starting Gold Layer Processing...")
     os.chdir("/opt/airflow")

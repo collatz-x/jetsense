@@ -87,7 +87,7 @@ def process_bronze_table(filepath, bronze_directory, spark):
     bronze_path = os.path.join(bronze_directory, f"bronze_{base_name}")
 
     # Create Bronze directory if it doesn't exist
-    os.makedirs(bronze_directory, exist_ok=True)
+    os.makedirs(bronze_path, exist_ok=True)
 
     print(f"💾 Writing to: {bronze_path}")
 

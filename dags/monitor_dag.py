@@ -28,10 +28,10 @@ ALERT_EMAIL = os.getenv('ALERT_EMAIL', 'liqing.lau.2024@mitb.smu.edu.sg')
 # ============================================================================
 # Configuration
 # ============================================================================
-GOLD_REFERENCE_DATA = "datamart/gold/reference_data.parquet"
-GOLD_CURRENT_DATA = "datamart/gold/feature_store.parquet"
-GOLD_PREDICTIONS = "datamart/gold/latest_predictions.parquet"
-REFERENCE_PREDICTIONS = "datamart/gold/reference_predictions.parquet"
+GOLD_REFERENCE_DATA = "datamart/gold/feature_store.parquet" 
+GOLD_CURRENT_DATA = "datamart/gold_inference/feature_store.parquet"
+GOLD_PREDICTIONS = "datamart/gold_inference/latest_predictions.parquet"
+REFERENCE_PREDICTIONS = "datamart/gold_inference/model_predictions/"
 ALERT_OUTPUT_DIR = "monitoring/alerts"
 
 FEATURE_COLS = ['op_setting_1', 'op_setting_2', 'op_setting_3', 'T24', 'T30', 'T50', 'P15', 'P30', 'Nf', 'Nc', 'phi', 'BPR', 'htBleed', 'W31', 'W32', 'T24_roll5_mean', 'T24_delta1', 'T30_roll5_mean', 'T30_delta1', 'T50_roll5_mean', 'T50_delta1', 'P15_roll5_mean', 'P15_delta1', 'P30_roll5_mean', 'P30_delta1', 'Nf_roll5_mean', 'Nf_delta1', 'Nc_roll5_mean', 'Nc_delta1', 'T_ratio_24_30', 'T_ratio_30_50', 'P_ratio_15_30', 'N_ratio_f_c', 'cycle_norm', 'health_index']
@@ -155,7 +155,7 @@ def prepare_latest_inference_data_wrapper(**context):
     os.chdir("/opt/airflow")
     
     try:
-        prediction_pattern = "datamart/gold/model_predictions/*/*predictions_*.parquet"
+        prediction_pattern = "datamart/gold_inference/model_predictions/*/*_predictions_*.parquet"
         prediction_files = glob.glob(prediction_pattern)
         
         if not prediction_files:
@@ -455,7 +455,6 @@ def send_alert_wrapper(**context):
         for reason in alert_data['alert_reasons']:
             print(f"  • {reason}")
         print(f"\nEmail sent: {'✅ Yes' if email_sent else '❌ No (saved to file)'}")
-        print(f"Reports saved to: {ALERT_OUTPUT_DIR}/")
         print("="*70 + "\n")
         
         context['ti'].xcom_push(key='email_sent', value=email_sent)

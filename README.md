@@ -105,7 +105,7 @@ The system monitors two types of drift:
 - **Silver Layer:** Cleans and consolidates data
 - **Gold Layer:** Engineers 50+ features for ML
 
-**Output:** Feature-ready data in `datamart/gold/`
+**Output:** Feature-ready data in `datamart/gold_inference/`
 
 ### 2. ML Inference (`model_inference_batch`)
 **Schedule:** Daily at 12:00 AM (midnight)
@@ -115,7 +115,7 @@ The system monitors two types of drift:
 - Runs predictions on new engine data
 - Saves RUL predictions as Parquet files
 
-**Output:** Predictions in `datamart/gold/model_predictions/`
+**Output:** Predictions in `datamart/gold_inference/model_predictions/`
 
 ### 3. Drift Monitoring (`model_drift_monitoring`)
 **Schedule:** Monthly on 1st at 12:00 AM
@@ -126,7 +126,7 @@ The system monitors two types of drift:
 - Checks prediction distribution changes
 - Sends alerts if drift exceeds thresholds
 
-**Output:** Alert files in `monitoring/alerts/` + email
+**Output:** Alert files in email
 
 ---
 

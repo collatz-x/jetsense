@@ -30,7 +30,6 @@ services:
       - ./model_bank:/opt/airflow/model_bank
       - ./datamart:/opt/airflow/datamart
       - ./utils:/opt/airflow/utils
-      - ./main.py:/opt/airflow/main.py
       - ./raw_data:/opt/airflow/raw_data
     entrypoint: >
       /bin/bash -c "airflow db init &&
@@ -56,7 +55,6 @@ services:
       - ./model_bank:/opt/airflow/model_bank
       - ./datamart:/opt/airflow/datamart
       - ./utils:/opt/airflow/utils
-      - ./main.py:/opt/airflow/main.py
       - ./raw_data:/opt/airflow/raw_data
     ports:
       - "8080:8080"
@@ -82,7 +80,6 @@ services:
       - ./model_bank:/opt/airflow/model_bank
       - ./datamart:/opt/airflow/datamart
       - ./utils:/opt/airflow/utils
-      - ./main.py:/opt/airflow/main.py
       - ./raw_data:/opt/airflow/raw_data
     command: scheduler
 
