@@ -214,3 +214,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Spark/Hadoop generated files
+*.crc
+._SUCCESS.crc
+_SUCCESS

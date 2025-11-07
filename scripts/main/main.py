@@ -17,6 +17,13 @@ import sys
 import pyspark
 from pyspark.sql import functions as F
 
+# Add parent directory to Python path to allow imports from project root
+# This ensures 'utils' module can be found regardless of where script is run from
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(current_dir))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 # Import custom processing modules for each layer
 import utils.bronze_processing as bp  # Raw data ingestion
 import utils.silver_processing as sp  # Data cleaning and consolidation
