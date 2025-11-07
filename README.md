@@ -29,7 +29,7 @@ This project implements an **end-to-end ML pipeline for predictive maintenance o
 ```bash
 # Clone the repository
 git clone 
-cd turbofan-predictive-maintenance
+cd jetsense
 
 # Copy .env.example and rename
 cp .env.example .env
@@ -38,7 +38,19 @@ cp .env.example .env
 docker-compose up -build
 ```
 
-### 2. Access Airflow UI
+### 2. Run Bronze-Silver-Gold training tables
+
+```
+python model_training/data_preprocessing.py
+```
+
+### 3. Run model training
+
+```
+python model_training/model_training.py
+```
+
+### 4. Access Airflow UI
 - Open browser: http://localhost:8080
 - Default credentials: `admin` / `admin`
 
@@ -86,7 +98,7 @@ The system monitors two types of drift:
 
 ---
 
-## 📊 Pipeline Details
+## 📊 Airflow Pipeline Details
 
 ### 1. ETL Pipeline (`etl_bronze_silver_gold`)
 **Schedule:** Daily at 10:00 AM
